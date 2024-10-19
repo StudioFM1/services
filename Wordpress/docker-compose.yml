@@ -1,0 +1,47 @@
+services:
+  db:
+    image: mariadb:lts-noble
+    command: '--default-authentication-plugin=mysql_native_password'
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      - MYSQL_DATABASE=wordpress
+    env_file:
+      - .env.db
+    expose:
+      - 3306
+      - 33060
+
+  wordpress:
+    image: wordpress:php8.3
+    hostname: wordpress
+    volumes:
+      - wp_data:/var/www/html
+      - ./volumes/wp_data:/mnt/data
+
+    ports:
+      - 8083:80
+    restart: always
+    env_file:
+      - .env.wp
+    environment:
+      - WORDPRESS_DB_HOST=db
+      - WORDPRESS_DB_NAME=wordpress
+    user: "www-data"
+  ftp:
+    image: stilliard/pure-ftpd
+    restart: always
+    environment:
+      - FTP_USER_HOME=/mnt/data/wp-content/jazler
+    env_file:
+      - .env.ftp
+    ports:
+      - 8021:21
+    volumes:
+      - wp_data:/mnt/data
+
+volumes:
+  wp_data:
+  db_data:
+  redis_data:
