@@ -37,7 +37,8 @@ services:
     env_file:
       - .env.ftp
     ports:
-      - 8021:21
+      - 21:21
+      - 30000-30009:30000-30009
     volumes:
       - wp_data:/mnt/data
 
