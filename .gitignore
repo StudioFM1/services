@@ -1,3 +1,9 @@
+# Exclude all .env files
 *.env*
+
+# Include .env.example files
+!*example.env*
+
+# Exclude certificate and key files
 *.crt
 *.key

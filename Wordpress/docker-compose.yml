@@ -18,8 +18,6 @@ services:
     hostname: wordpress
     volumes:
       - wp_data:/var/www/html
-      - ./volumes/wp_data:/mnt/data
-
     ports:
       - 8083:80
     restart: always
