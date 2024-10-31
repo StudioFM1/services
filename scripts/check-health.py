@@ -2,6 +2,35 @@
 import subprocess
 import requests
 import os
+from ftplib import FTP, error_perm
+from dotenv import load_dotenv
+
+dotenv_path = '../wordpress/.env.ftp'
+load_dotenv(dotenv_path)
+
+ftp_user = os.getenv('FTP_USER_NAME')
+ftp_pass = os.getenv('FTP_USER_PASS')
+
+ftp_host = 'localhost'
+ftp_port = 21
+
+
+def check_ftp_server():
+    try:
+        with FTP() as ftp:
+            ftp.connect(ftp_host, ftp_port)
+            ftp.login(ftp_user, ftp_pass)
+            ftp.set_pasv(True)  # Enable passive mode
+            # Attempt to list the directory
+            ftp.dir()
+    except error_perm as e:
+        print(f'Permission error: {e}')
+        return False
+    except Exception as e:
+        print(f'Error connecting to FTP server: {e}')
+        return False
+    return True
+
 
 def restart_service(service):
     # find the script root directory
@@ -27,18 +56,25 @@ try:
 
     # Check website and icecast through HTTPS (nginx)
     wordpress = requests.get('https://fm1.hmu.gr/', verify=False)
-    # get status code
     if(not(wordpress.status_code == 200)):
         print('Error: WordPress is not running.')
         restart_service("wordpress")
         restart_service("nginx")
+    else:
+        print('WordPress is healthy.')
 
-    # Check website and icecast through HTTPS (nginx)
+    if not check_ftp_server():
+        restart_service("wordpress")
+    else:
+        print('FTP server is healthy.')
+
     icecast = requests.get('https://fm1.hmu.gr:8000/status-json.xsl', verify=False)
     icestats = (icecast.json())["icestats"]
-    if(not("source" in icestats.keys()) or not(icecast.status_code == 200)):
+    if(not("source" in icestats.keys()) or not(icecast.status_code == 200)): # if butt is malfunctioning, icestats will not have a source key
         print('Error: IceCast is not running.')
         restart_service("icecast")
+    else:
+        print('IceCast is healthy.')
 
 except requests.exceptions.RequestException as e:
     print(f'Error: {e}')
