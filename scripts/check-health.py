@@ -3,12 +3,22 @@ import subprocess
 import requests
 import os
 
-def restart_services():
+def restart_service(service):
     # find the script root directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # run restart_services.bat
-    subprocess.run(['cmd', '/C', f'{script_dir}\\restart-services.bat'], check=True)
-    print('Services restarted.')
+
+    if(service == 'icecast'):
+        subprocess.run(['cmd', '/C', f'{script_dir}\\restart-icecast.bat'], check=True)
+        print('IceCast restarted.')
+    elif(service == 'nginx'):
+        subprocess.run(['cmd', '/C', f'{script_dir}\\restart-nginx.bat'], check=True)
+        print('Nginx restarted.')
+    elif(service == 'wordpress'):
+        subprocess.run(['cmd', '/C', f'{script_dir}\\restart-wordpress.bat'], check=True)
+        print('WordPress restarted.')
+    else:
+        print('Error: Service not found.')
+        return
 
 try:
     # Localhost IceCast check
@@ -16,14 +26,25 @@ try:
     requests.get('http://localhost:8082/live.m3u')
 
     # Check website and icecast through HTTPS (nginx)
-    requests.get('https://fm1.hmu.gr/', verify=False)
-    requests.get('https://fm1.hmu.gr:8000', verify=False)
-    requests.get('https://fm1.hmu.gr:8000/live.m3u', verify=False)
+    wordpress = requests.get('https://fm1.hmu.gr/', verify=False)
+    # get status code
+    if(not(wordpress.status_code == 200)):
+        print('Error: WordPress is not running.')
+        restart_service("wordpress")
+        restart_service("nginx")
 
-    print('All services are up and running.')
+    # Check website and icecast through HTTPS (nginx)
+    icecast = requests.get('https://fm1.hmu.gr:8000/status-json.xsl', verify=False)
+    icestats = (icecast.json())["icestats"]
+    if(not("source" in icestats.keys()) or not(icecast.status_code == 200)):
+        print('Error: IceCast is not running.')
+        restart_service("icecast")
 
 except requests.exceptions.RequestException as e:
     print(f'Error: {e}')
-    restart_services()
+    restart_service("icecast")
+    restart_service("nginx")
+    restart_service("wordpress")
+
 
 
